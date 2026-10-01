@@ -14,7 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run Cargo Audit
-        uses: rustsec/audit-check-action@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo audit
+        run: cargo audit
