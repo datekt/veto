@@ -1,0 +1,60 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: veto-linux-x86_64
+            binary_name: veto
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: veto-windows-x86_64.exe
+            binary_name: veto.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: veto-macos-x86_64
+            binary_name: veto
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          mv "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" \
+             "target/${{ matrix.target }}/release/${{ matrix.artifact_name }}"
+
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
